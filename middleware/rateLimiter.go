@@ -49,7 +49,7 @@ func NewRateLimiter(frameDuration time.Duration) *RateLimiter {
 }
 
 type RateLimiterMiddleware struct {
-	mux *http.ServeMux
+	Mux http.Handler
 	MaxRequestsPerFrame int
 	FrameDuration time.Duration
 	IPs map[string]*RateLimiter
@@ -71,13 +71,13 @@ func (rlm RateLimiterMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Reques
 
 	rlm.IPs[addr].IncrementRequestsInFrame()
 	
-	rlm.mux.ServeHTTP(w, r)
+	rlm.Mux.ServeHTTP(w, r)
 }
 
-func NewRateLimiterMiddleware(mux *http.ServeMux, requestsPerFrame int, frameDuration time.Duration) RateLimiterMiddleware {
+func NewRateLimiterMiddleware(mux http.Handler, requestsPerFrame int, frameDuration time.Duration) RateLimiterMiddleware {
 	return RateLimiterMiddleware{ 
 		IPs: make(map[string]*RateLimiter), 
-		mux: mux, 
+		Mux: mux,
 		MaxRequestsPerFrame: requestsPerFrame, 
 		FrameDuration: frameDuration,
 	}
