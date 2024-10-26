@@ -18,6 +18,7 @@ type MetricsMiddleware struct {
 	mux http.Handler
 	mu sync.Mutex
 	Requests []Request
+	RequestsPerSecond int
 }
 
 func (sm *MetricsMiddleware) AddRequest() *Request {
@@ -25,6 +26,7 @@ func (sm *MetricsMiddleware) AddRequest() *Request {
 	defer sm.mu.Unlock()
 
 	sm.Requests = append(sm.Requests, Request{ Start: time.Now() })
+	sm.RequestsPerSecond++
 	return &sm.Requests[len(sm.Requests)-1]
 }
 
@@ -70,8 +72,10 @@ func (sm *MetricsMiddleware) Report() string {
 	var res, requestList strings.Builder
 	var totalDuration time.Duration
 
+	requestList.WriteString(fmt.Sprintf("%d Requests per second\n", sm.RequestsPerSecond))
+	requestList.WriteString(fmt.Sprintf("%d Requests: \n\n", len(sm.Requests)))
 	for i, r := range sm.Requests {
-		requestList.WriteString(fmt.Sprintf("%d: %v\n", i, r.Duration))
+		requestList.WriteString(fmt.Sprintf("%d: %v\n", i+1, r.Duration))
 		totalDuration += r.Duration
 	}
 
@@ -81,8 +85,26 @@ func (sm *MetricsMiddleware) Report() string {
 	return res.String()
 }
 
-func NewMetricsMiddleware(mux http.Handler) MetricsMiddleware {
-	return MetricsMiddleware{
+func (ms *MetricsMiddleware) ResetRequestsPerSecond() {
+	ms.mu.Lock()
+	ms.RequestsPerSecond = 0
+	ms.mu.Unlock()
+}
+
+func (ms *MetricsMiddleware) RequestPerSecondResetTicker() {
+	t := time.Tick(time.Second)
+
+	for range t {
+		ms.ResetRequestsPerSecond()
+	}
+}
+
+func NewMetricsMiddleware(mux http.Handler) *MetricsMiddleware {
+	m := &MetricsMiddleware{
 		mux: mux,
 	}
+
+	go m.RequestPerSecondResetTicker()
+
+	return m
 }

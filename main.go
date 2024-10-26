@@ -32,5 +32,5 @@ func main() {
 	})
 
 	fmt.Printf("listening on port %d\n", *port)
-	http.ListenAndServe(fmt.Sprintf(":%d", *port), &metrics)
+	http.ListenAndServe(fmt.Sprintf(":%d", *port), metrics)
 }
