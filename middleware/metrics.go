@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"sort"
 	"strings"
 	"sync"
 	"time"
@@ -79,7 +80,18 @@ func (sm *MetricsMiddleware) Report() string {
 		totalDuration += r.Duration
 	}
 
+	sortedByDuration := make([]Request, len(sm.Requests))
+	copy(sortedByDuration, sm.Requests)
+
+	sort.Slice(sortedByDuration, func(i, j int) bool {
+		return int(sm.Requests[i].Duration) < int(sm.Requests[j].Duration)
+	})
+
+	onePercent := len(sm.Requests) / 100
+	nineninep := sortedByDuration[onePercent]
+
 	res.WriteString(fmt.Sprintf("Average request duration: %v\n", time.Duration(int(totalDuration) / len(sm.Requests))))
+	res.WriteString(fmt.Sprintf("99p: %v\n", nineninep.Duration))
 	res.WriteString(requestList.String())
 
 	return res.String()
