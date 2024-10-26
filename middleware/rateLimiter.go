@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"slices"
 	"sync"
 	"time"
 )
@@ -53,6 +54,7 @@ type RateLimiterMiddleware struct {
 	MaxRequestsPerFrame int
 	FrameDuration time.Duration
 	IPs map[string]*RateLimiter
+	BypassRoutes []string
 }
 
 func (rlm RateLimiterMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -64,7 +66,7 @@ func (rlm RateLimiterMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Reques
 		rlm.IPs[addr] = NewRateLimiter(rlm.FrameDuration)
 	}
 
-	if rlm.IPs[addr].Limitted(rlm.MaxRequestsPerFrame) {
+	if rlm.IPs[addr].Limitted(rlm.MaxRequestsPerFrame) && !slices.Contains(rlm.BypassRoutes, r.URL.Path) {
 		fmt.Fprintf(w, "You've been rate limited")
 		return
 	}
@@ -74,11 +76,12 @@ func (rlm RateLimiterMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Reques
 	rlm.Mux.ServeHTTP(w, r)
 }
 
-func NewRateLimiterMiddleware(mux http.Handler, requestsPerFrame int, frameDuration time.Duration) RateLimiterMiddleware {
+func NewRateLimiterMiddleware(mux http.Handler, requestsPerFrame int, frameDuration time.Duration, bypassRoutes []string) RateLimiterMiddleware {
 	return RateLimiterMiddleware{ 
 		IPs: make(map[string]*RateLimiter), 
 		Mux: mux,
 		MaxRequestsPerFrame: requestsPerFrame, 
 		FrameDuration: frameDuration,
+		BypassRoutes: bypassRoutes,
 	}
 }

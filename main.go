@@ -24,7 +24,7 @@ func main() {
 
 	mux.HandleFunc("/hello", hello)
 
-	rlm := middleware.NewRateLimiterMiddleware(mux, *requestsPerFrame, time.Duration(*frameDuration) * time.Second)
+	rlm := middleware.NewRateLimiterMiddleware(mux, *requestsPerFrame, time.Duration(*frameDuration) * time.Second, []string{"/metrics"})
 	metrics := middleware.NewMetricsMiddleware(rlm)
 
 	mux.HandleFunc("/metrics", func(w http.ResponseWriter, r *http.Request) {
