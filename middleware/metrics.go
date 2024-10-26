@@ -67,10 +67,16 @@ func (sm *MetricsMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (sm *MetricsMiddleware) Report() string {
-	var res strings.Builder
+	var res, requestList strings.Builder
+	var totalDuration time.Duration
+
 	for i, r := range sm.Requests {
-		res.WriteString(fmt.Sprintf("%d: %v\n", i, r.Duration))
+		requestList.WriteString(fmt.Sprintf("%d: %v\n", i, r.Duration))
+		totalDuration += r.Duration
 	}
+
+	res.WriteString(fmt.Sprintf("Average request duration: %v\n", time.Duration(int(totalDuration) / len(sm.Requests))))
+	res.WriteString(requestList.String())
 
 	return res.String()
 }
